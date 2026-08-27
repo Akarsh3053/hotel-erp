@@ -1,0 +1,8 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Hotel ERP">
+  <rect width="512" height="512" fill="#0a0a0a"/>
+  <g fill="#fafafa">
+    <rect x="196" y="156" width="36" height="200" rx="5"/>
+    <rect x="280" y="156" width="36" height="200" rx="5"/>
+    <rect x="196" y="238" width="120" height="36" rx="5"/>
+  </g>
+</svg>
