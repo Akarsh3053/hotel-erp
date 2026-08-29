@@ -147,7 +147,7 @@ export function BookingDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto p-4 sm:p-6">
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto p-4 sm:p-6 lg:max-w-3xl">
           <DialogHeader>
             <div className="flex items-center justify-between gap-2 pr-4">
               <DialogTitle className="text-lg">

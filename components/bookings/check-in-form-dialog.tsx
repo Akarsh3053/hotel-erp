@@ -393,7 +393,7 @@ export function CheckInFormDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-h-[92vh] max-w-xl overflow-y-auto p-4 sm:p-6"
+        className="max-h-[92vh] max-w-xl overflow-y-auto p-4 sm:p-6 lg:max-w-4xl"
         onInteractOutside={(e) => {
           // Allow closing when clicking the overlay, but prevent closing when
           // clicking Select dropdowns or other portaled UI elements

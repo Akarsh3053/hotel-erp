@@ -9,7 +9,9 @@ import {
   type StaffMember,
 } from "@/components/property/staff-manager";
 import { DangerZone } from "@/components/property/danger-zone";
+import { PropertyImagesManager } from "@/components/property/property-images-manager";
 import { TemplateManager } from "@/components/housekeeping/template-manager";
+import { getSignedImageUrl } from "@/lib/storage/cloudinary";
 import { getCurrentMembership, listPropertyMembers } from "@/lib/auth/rbac";
 import { appRoleFromMetadata, listPendingInvitations } from "@/lib/auth/clerk-org";
 import { can } from "@/lib/auth/roles";
@@ -87,20 +89,32 @@ export default async function SettingsPage() {
       ])
     : [[], []];
 
+  // Resolve signed URLs for property images (they are public, but signed URLs are standard for Cloudinary)
+  const propertyImages = (property.photoUrls || []).map((publicId) => ({
+    publicId,
+    url: getSignedImageUrl(publicId, { access: "public" })
+  }));
+
   return (
     <>
       <PageHeader title="Settings" description={property.name} />
       <div className="space-y-10">
         <section className="space-y-3">
-          <h2 className="text-base font-semibold">Property</h2>
-          <PropertyDetailsForm
-            canEdit={canEditProperty}
-            property={{
-              name: property.name,
-              address: property.address,
-              totalRooms: property.totalRooms,
-            }}
-          />
+          <h2 className="text-base font-semibold">Property Details</h2>
+          <div className="grid gap-6">
+            <PropertyDetailsForm
+              canEdit={canEditProperty}
+              property={{
+                name: property.name,
+                address: property.address,
+                totalRooms: property.totalRooms,
+              }}
+            />
+            <PropertyImagesManager
+              canEdit={canEditProperty}
+              images={propertyImages}
+            />
+          </div>
         </section>
 
         {canManageChecklists ? (

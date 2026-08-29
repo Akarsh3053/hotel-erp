@@ -57,7 +57,7 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function BottomNav({ role }: { role: Role }) {
+export function BottomNav({ role, className }: { role: Role; className?: string }) {
   const pathname = usePathname();
   const items = NAV_ITEMS.filter(
     (item) => !item.action || can(role, item.action),
@@ -66,7 +66,10 @@ export function BottomNav({ role }: { role: Role }) {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 [padding-bottom:env(safe-area-inset-bottom)]"
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 [padding-bottom:env(safe-area-inset-bottom)]",
+        className
+      )}
     >
       <ul className="mx-auto flex max-w-screen-sm items-stretch justify-around">
         {items.map((item) => {

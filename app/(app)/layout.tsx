@@ -1,5 +1,6 @@
 import { AppHeader } from "@/components/nav/app-header";
 import { BottomNav } from "@/components/nav/bottom-nav";
+import { SideNav } from "@/components/nav/side-nav";
 import { ActivatePropertyGate } from "@/components/property/activate-property-gate";
 import { PropertySwitcher } from "@/components/property/property-switcher";
 import {
@@ -72,10 +73,20 @@ export default async function AppLayout({
           />
         }
       />
-      <main className="mx-auto w-full max-w-screen-sm flex-1 px-4 pb-24 pt-4">
-        {children}
-      </main>
-      <BottomNav role={role} />
+      <div className="flex flex-1">
+        {/* Desktop Sidebar */}
+        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-64 shrink-0 overflow-y-auto border-r border-border bg-card lg:block">
+          <SideNav role={role} />
+        </aside>
+
+        {/* Main Content Area */}
+        <main className="w-full flex-1 px-4 py-4 pb-24 lg:px-8 lg:pb-8">
+          <div className="mx-auto w-full max-w-6xl">
+            {children}
+          </div>
+        </main>
+      </div>
+      <BottomNav role={role} className="lg:hidden" />
     </div>
   );
 }

@@ -219,7 +219,7 @@ export function TemplateManager({
       </CardContent>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto p-4">
+        <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto p-4 lg:max-w-2xl">
           <DialogHeader>
             <DialogTitle>
               {editingTemplate ? "Edit Checklist Template" : "New Checklist Template"}
