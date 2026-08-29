@@ -63,7 +63,7 @@ export async function createReservation(
 
   const checkInDate = new Date(parsed.data.scheduledCheckInAt);
   const checkOutDate = new Date(
-    checkInDate.getTime() + parsed.data.durationNights * 24 * 60 * 60 * 1000,
+    checkInDate.getTime() + (parsed.data.durationNights ?? 1) * 24 * 60 * 60 * 1000,
   );
 
   try {
