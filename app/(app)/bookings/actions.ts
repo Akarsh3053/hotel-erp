@@ -160,8 +160,11 @@ export async function checkInWalkIn(
   }
 
   const now = new Date();
+  const checkInDate = parsed.data.bookingType === "dates" && parsed.data.scheduledCheckInAt
+    ? new Date(parsed.data.scheduledCheckInAt)
+    : now;
   const checkOutDate = new Date(
-    now.getTime() + parsed.data.durationNights * 24 * 60 * 60 * 1000,
+    checkInDate.getTime() + (parsed.data.durationNights ?? 1) * 24 * 60 * 60 * 1000,
   );
 
   try {
@@ -173,7 +176,7 @@ export async function checkInWalkIn(
         status: "checked_in",
         bookingType: parsed.data.bookingType,
         totalPrice: parsed.data.totalPrice !== undefined && parsed.data.totalPrice !== null ? String(parsed.data.totalPrice) : null,
-        scheduledCheckInAt: now,
+        scheduledCheckInAt: checkInDate,
         scheduledCheckOutAt: parsed.data.scheduledCheckOutAt ? new Date(parsed.data.scheduledCheckOutAt) : checkOutDate,
         actualCheckInAt: now,
         adultCount: parsed.data.adultCount,

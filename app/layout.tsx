@@ -52,7 +52,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    //@ts-ignore
+    // @ts-expect-error Clerk layout typings are noisy in Next
     <ClerkProvider layout={{ unsafe_disableDevelopmentModeWarnings: true }}>
       <html
         lang="en"

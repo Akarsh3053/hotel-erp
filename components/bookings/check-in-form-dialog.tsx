@@ -75,6 +75,11 @@ export type ReservationToCheckIn = {
   scheduledCheckOutAt?: Date | string | null;
 };
 
+function toDateInputValue(date = new Date()) {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().split("T")[0]!;
+}
+
 export function CheckInFormDialog({
   open,
   onOpenChange,
@@ -88,6 +93,7 @@ export function CheckInFormDialog({
 }) {
   const router = useRouter();
   const isReservationCheckIn = Boolean(reservation);
+  const todayStr = toDateInputValue();
 
   const availableRooms = rooms.filter((r) => r.status === "available");
   const displayRooms = availableRooms.length > 0 ? availableRooms : rooms;
@@ -97,6 +103,8 @@ export function CheckInFormDialog({
   const [bookingType, setBookingType] = useState<"hourly" | "nightly" | "dates">("nightly");
   const [durationNights, setDurationNights] = useState<number>(1);
   const [durationHours, setDurationHours] = useState<number>(2);
+  const [checkInDate, setCheckInDate] = useState<string>(toDateInputValue());
+  const [checkOutDate, setCheckOutDate] = useState<string>(toDateInputValue());
   const [adultCount, setAdultCount] = useState<number>(1);
   const [childCount, setChildCount] = useState<number>(0);
   const [selectedRoom, setSelectedRoom] = useState<AvailableRoom | null>(null);
@@ -119,6 +127,9 @@ export function CheckInFormDialog({
       setSelectedRoomId(reservation.roomId);
       setBookingType("nightly");
       setDurationNights(1);
+      setDurationHours(2);
+      setCheckInDate(toDateInputValue());
+      setCheckOutDate(reservation.scheduledCheckOutAt ? toDateInputValue(new Date(reservation.scheduledCheckOutAt)) : toDateInputValue());
       const resAdults = Math.max(1, reservation.adultCount ?? 1);
       const resChildren = reservation.childCount ?? 0;
       setAdultCount(resAdults);
@@ -170,6 +181,8 @@ export function CheckInFormDialog({
       setBookingType("nightly");
       setDurationNights(1);
       setDurationHours(2);
+      setCheckInDate(toDateInputValue());
+      setCheckOutDate(toDateInputValue(new Date(Date.now() + 24 * 60 * 60 * 1000)));
       setAdultCount(1);
       setChildCount(0);
       setTotalPrice("");
@@ -194,6 +207,7 @@ export function CheckInFormDialog({
   useEffect(() => {
     if (selectedRoomId) {
       const room = displayRooms.find((r) => r.id === selectedRoomId);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedRoom(room ?? null);
     }
   }, [selectedRoomId, displayRooms]);
@@ -306,27 +320,34 @@ export function CheckInFormDialog({
       return;
     }
 
-    // Client-side validations
+    // Client-side validations — only primary guest fields are strictly required
+    const primaryIdx = adults.findIndex((a) => a.isPrimary);
+
     for (let i = 0; i < adults.length; i++) {
       const a = adults[i]!;
+      const isPrimary = i === primaryIdx;
+
+      // Name required for everyone (it's the minimum to identify a guest)
       if (!a.name.trim() || a.name.trim().length < 2) {
         toast.error(`Adult Guest #${i + 1}: Name must be at least 2 characters`);
         return;
       }
-      if (!a.address.trim() || a.address.trim().length < 5) {
-        toast.error(
-          `Adult Guest #${i + 1}: Address must be at least 5 characters`,
-        );
-        return;
-      }
-      if (!a.contact.trim()) {
-        toast.error(`Adult Guest #${i + 1}: Phone number is required`);
-        return;
-      }
-      const ageNum = parseInt(a.age, 10);
-      if (isNaN(ageNum) || ageNum < 18) {
-        toast.error(`Adult Guest #${i + 1}: Must be 18 or older`);
-        return;
+
+      if (isPrimary) {
+        // Full details mandatory for the primary guest
+        if (!a.address.trim() || a.address.trim().length < 5) {
+          toast.error("Primary guest: Address must be at least 5 characters");
+          return;
+        }
+        if (!a.contact.trim()) {
+          toast.error("Primary guest: Phone number is required");
+          return;
+        }
+        const ageNum = parseInt(a.age, 10);
+        if (isNaN(ageNum) || ageNum < 18) {
+          toast.error("Primary guest: Must be 18 or older");
+          return;
+        }
       }
     }
 
@@ -403,6 +424,8 @@ export function CheckInFormDialog({
         result = await checkInWalkIn({
           roomId: selectedRoomId,
           bookingType,
+          scheduledCheckInAt: bookingType === "dates" ? checkInDate : undefined,
+          scheduledCheckOutAt: bookingType === "dates" ? checkOutDate : undefined,
           durationNights: bookingType === "hourly" ? durationHours : durationNights,
           totalPrice: totalPrice ? Number(totalPrice) : undefined,
           adultCount,
@@ -544,29 +567,53 @@ export function CheckInFormDialog({
               </div>
 
               {!isReservationCheckIn && (
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="checkin-duration">
-                      {bookingType === "hourly" ? "Duration (Hours)" : "Duration (Nights)"}
-                    </Label>
-                    <Input
-                      id="checkin-duration"
-                      type="number"
-                      min={1}
-                      max={60}
-                      value={bookingType === "hourly" ? durationHours || "" : durationNights || ""}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10);
-                        const cleanVal = isNaN(val) ? ("" as unknown as number) : val;
-                        if (bookingType === "hourly") {
-                          setDurationHours(cleanVal);
-                        } else {
-                          setDurationNights(cleanVal);
-                        }
-                      }}
-                      disabled={bookingType === "dates"}
-                    />
-                  </div>
+                <div className="grid grid-cols-2 gap-3 pt-1 sm:grid-cols-3">
+                  {bookingType === "dates" ? (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="checkin-date-from">From Date</Label>
+                        <Input
+                          id="checkin-date-from"
+                          type="date"
+                          min={todayStr}
+                          value={checkInDate}
+                          onChange={(e) => setCheckInDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="checkin-date-to">To Date</Label>
+                        <Input
+                          id="checkin-date-to"
+                          type="date"
+                          min={checkInDate || todayStr}
+                          value={checkOutDate}
+                          onChange={(e) => setCheckOutDate(e.target.value)}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="checkin-duration">
+                        {bookingType === "hourly" ? "Duration (Hours)" : "Duration (Nights)"}
+                      </Label>
+                      <Input
+                        id="checkin-duration"
+                        type="number"
+                        min={1}
+                        max={60}
+                        value={bookingType === "hourly" ? durationHours || "" : durationNights || ""}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          const cleanVal = isNaN(val) ? ("" as unknown as number) : val;
+                          if (bookingType === "hourly") {
+                            setDurationHours(cleanVal);
+                          } else {
+                            setDurationNights(cleanVal);
+                          }
+                        }}
+                      />
+                    </div>
+                  )}
 
                   {selectedRoom?.pricingType === "flexi" && (
                     <div className="space-y-1.5">
@@ -670,7 +717,9 @@ export function CheckInFormDialog({
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor={`adult-${idx}-contact`}>Phone Contact *</Label>
+                      <Label htmlFor={`adult-${idx}-contact`}>
+                        Phone Contact {adult.isPrimary ? "*" : <span className="font-normal text-muted-foreground">(optional)</span>}
+                      </Label>
                       <Input
                         id={`adult-${idx}-contact`}
                         type="tel"
@@ -723,7 +772,7 @@ export function CheckInFormDialog({
 
                   <div className="space-y-1.5">
                     <Label htmlFor={`adult-${idx}-address`}>
-                      Residential Address *
+                      Residential Address {adult.isPrimary ? "*" : <span className="font-normal text-muted-foreground">(optional)</span>}
                     </Label>
                     <Input
                       id={`adult-${idx}-address`}

@@ -25,7 +25,8 @@ export type PermissionAction =
   | "housekeeping:viewAll"
   | "housekeeping:viewOwn"
   | "housekeeping:complete"
-  | "housekeeping:review";
+  | "housekeeping:review"
+  | "expense:manage";
 
 const PERMISSIONS: Record<PermissionAction, readonly Role[]> = {
   "property:create": ["owner"],
@@ -43,6 +44,7 @@ const PERMISSIONS: Record<PermissionAction, readonly Role[]> = {
   "housekeeping:viewOwn": ["cleaner"],
   "housekeeping:complete": ["cleaner"],
   "housekeeping:review": ["owner", "manager"],
+  "expense:manage": ["owner", "manager"],
 };
 
 /** Whether a role is permitted to perform an action. */

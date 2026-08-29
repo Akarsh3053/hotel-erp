@@ -9,6 +9,7 @@ import {
   Home,
   Settings,
   Sparkles,
+  Receipt,
   type LucideIcon,
 } from "lucide-react";
 
@@ -42,6 +43,12 @@ const NAV_ITEMS: NavItem[] = [
     label: "My Tasks",
     icon: ClipboardList,
     action: "housekeeping:viewOwn",
+  },
+  {
+    href: "/expenses",
+    label: "Expenses",
+    icon: Receipt,
+    action: "expense:manage",
   },
   {
     href: "/settings",

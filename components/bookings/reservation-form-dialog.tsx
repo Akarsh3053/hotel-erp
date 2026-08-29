@@ -209,7 +209,7 @@ export function ReservationFormDialog({
               </div>
             </div>
 
-            {/* Check-in date & duration & tariff */}
+            {/* Check-in date & duration/check-out & tariff */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="res-date">Check-in Date</Label>
@@ -227,25 +227,42 @@ export function ReservationFormDialog({
                 ) : null}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="res-nights">
-                  {bookingType === "hourly" ? "Duration (Hours)" : "Duration (Nights)"}
-                </Label>
-                <Input
-                  id="res-nights"
-                  type="number"
-                  min="1"
-                  max="300"
-                  aria-invalid={errors.durationNights ? true : undefined}
-                  {...register("durationNights")}
-                  disabled={bookingType === "dates"}
-                />
-                {errors.durationNights ? (
-                  <p className="text-sm text-destructive">
-                    {errors.durationNights.message}
-                  </p>
-                ) : null}
-              </div>
+              {bookingType === "dates" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="res-checkout">Check-out Date</Label>
+                  <Input
+                    id="res-checkout"
+                    type="date"
+                    min={todayStr}
+                    aria-invalid={errors.scheduledCheckOutAt ? true : undefined}
+                    {...register("scheduledCheckOutAt")}
+                  />
+                  {errors.scheduledCheckOutAt ? (
+                    <p className="text-sm text-destructive">
+                      {errors.scheduledCheckOutAt.message}
+                    </p>
+                  ) : null}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="res-nights">
+                    {bookingType === "hourly" ? "Duration (Hours)" : "Duration (Nights)"}
+                  </Label>
+                  <Input
+                    id="res-nights"
+                    type="number"
+                    min="1"
+                    max="300"
+                    aria-invalid={errors.durationNights ? true : undefined}
+                    {...register("durationNights")}
+                  />
+                  {errors.durationNights ? (
+                    <p className="text-sm text-destructive">
+                      {errors.durationNights.message}
+                    </p>
+                  ) : null}
+                </div>
+              )}
 
               {selectedRoom?.pricingType === "flexi" && (
                 <div className="space-y-2">

@@ -336,10 +336,36 @@ export const housekeepingTaskPhotos = pgTable(
 );
 
 /* ---------------------------------------------------------------------------
+ * expenses
+ * ------------------------------------------------------------------------- */
+export const expenses = pgTable(
+  "expenses",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    propertyId: uuid("property_id")
+      .notNull()
+      .references(() => properties.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+    receiptUrl: text("receipt_url"),
+    receiptPublicId: text("receipt_public_id"),
+    createdBy: uuid("created_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    ...timestamps,
+  },
+  (t) => [
+    index("expenses_property_idx").on(t.propertyId),
+    index("expenses_created_by_idx").on(t.createdBy),
+  ],
+);
+
+/* ---------------------------------------------------------------------------
  * Relations (ergonomics for later query phases)
  * ------------------------------------------------------------------------- */
 export const usersRelations = relations(users, ({ many }) => ({
   memberships: many(propertyMembers),
+  expenses: many(expenses),
 }));
 
 export const propertiesRelations = relations(properties, ({ one, many }) => ({
@@ -352,6 +378,7 @@ export const propertiesRelations = relations(properties, ({ one, many }) => ({
   rooms: many(rooms),
   checklistTemplates: many(checklistTemplates),
   bookings: many(bookings),
+  expenses: many(expenses),
 }));
 
 export const propertyMembersRelations = relations(
@@ -465,3 +492,14 @@ export const housekeepingTaskPhotosRelations = relations(
     }),
   }),
 );
+
+export const expensesRelations = relations(expenses, ({ one }) => ({
+  property: one(properties, {
+    fields: [expenses.propertyId],
+    references: [properties.id],
+  }),
+  user: one(users, {
+    fields: [expenses.createdBy],
+    references: [users.id],
+  }),
+}));

@@ -10,15 +10,17 @@ import {
   Sparkles,
   DollarSign,
   TrendingUp,
+  Receipt,
   type LucideIcon,
 } from "lucide-react";
 
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { TimeframeToggle } from "@/components/dashboard/timeframe-toggle";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { db } from "@/lib/db";
-import { rooms, bookings } from "@/lib/db/schema";
+import { rooms, bookings, expenses } from "@/lib/db/schema";
 import { getCurrentMembership } from "@/lib/auth/rbac";
 import { can, ROLE_LABELS, type PermissionAction } from "@/lib/auth/roles";
 import type { RoomStatus } from "@/lib/validations/room";
@@ -54,9 +56,18 @@ const QUICK_ACTIONS: Array<{
     icon: Settings,
     action: "staff:manage",
   },
+  {
+    href: "/expenses",
+    label: "Expenses",
+    icon: Receipt,
+    action: "expense:manage",
+  },
 ];
 
-export default async function HomePage() {
+export default async function HomePage(props: {
+  searchParams: Promise<{ timeframe?: string }>;
+}) {
+  const searchParams = await props.searchParams;
   const membership = await getCurrentMembership();
 
   if (!membership) {
@@ -108,13 +119,18 @@ export default async function HomePage() {
   }
 
   // Dashboard Stats for Owner
-  let currentMonthBookingsCount = 0;
-  let currentMonthRevenue = 0;
+  let currentPeriodBookingsCount = 0;
+  let currentPeriodRevenue = 0;
+  let currentPeriodExpenses = 0;
+
   if (role === "owner") {
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    // Use startOfDay or startOfMonth based on timeframe parameter
+    const startDate = searchParams.timeframe === "today"
+      ? new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      : new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const monthlyBookings = await db
+    const periodBookings = await db
       .select({
         totalPrice: bookings.totalPrice,
       })
@@ -122,13 +138,30 @@ export default async function HomePage() {
       .where(
         and(
           eq(bookings.propertyId, property.id),
-          gte(bookings.createdAt, startOfMonth)
+          gte(bookings.createdAt, startDate)
         )
       );
 
-    currentMonthBookingsCount = monthlyBookings.length;
-    currentMonthRevenue = monthlyBookings.reduce(
+    currentPeriodBookingsCount = periodBookings.length;
+    currentPeriodRevenue = periodBookings.reduce(
       (acc, b) => acc + (b.totalPrice ? Number(b.totalPrice) : 0),
+      0
+    );
+
+    const periodExpenses = await db
+      .select({
+        amount: expenses.amount,
+      })
+      .from(expenses)
+      .where(
+        and(
+          eq(expenses.propertyId, property.id),
+          gte(expenses.createdAt, startDate)
+        )
+      );
+
+    currentPeriodExpenses = periodExpenses.reduce(
+      (acc, e) => acc + (e.amount ? Number(e.amount) : 0),
       0
     );
   }
@@ -143,18 +176,23 @@ export default async function HomePage() {
       <div className="space-y-5">
         {/* Revenue & Booking Dashboard (owner only) */}
         {role === "owner" && (
-          <section className="space-y-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Overall Performance (This Month)
-            </h2>
-            <div className="grid grid-cols-2 gap-3">
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Performance
+              </h2>
+            </div>
+
+            <TimeframeToggle />
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <Card className="flex flex-col p-4 shadow-sm border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 transition-colors">
                 <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                   <DollarSign className="size-4" />
                   <span className="text-xs font-semibold uppercase tracking-wider">Revenue</span>
                 </div>
                 <div className="mt-2 text-2xl font-bold text-emerald-700 dark:text-emerald-300">
-                  ₹{currentMonthRevenue.toLocaleString("en-IN", {
+                  ₹{currentPeriodRevenue.toLocaleString("en-IN", {
                     maximumFractionDigits: 0,
                   })}
                 </div>
@@ -166,7 +204,19 @@ export default async function HomePage() {
                   <span className="text-xs font-semibold uppercase tracking-wider">Bookings</span>
                 </div>
                 <div className="mt-2 text-2xl font-bold text-blue-700 dark:text-blue-300">
-                  {currentMonthBookingsCount}
+                  {currentPeriodBookingsCount}
+                </div>
+              </Card>
+
+              <Card className="flex flex-col p-4 shadow-sm border-rose-500/20 bg-rose-500/5 dark:bg-rose-500/10 transition-colors col-span-2 sm:col-span-1">
+                <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                  <Receipt className="size-4" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">Expenses</span>
+                </div>
+                <div className="mt-2 text-2xl font-bold text-rose-700 dark:text-rose-300">
+                  ₹{currentPeriodExpenses.toLocaleString("en-IN", {
+                    maximumFractionDigits: 0,
+                  })}
                 </div>
               </Card>
             </div>
