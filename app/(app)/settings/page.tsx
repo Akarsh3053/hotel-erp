@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { eq, sql } from "drizzle-orm";
 
 import { PageHeader } from "@/components/page-header";
 import { PropertyDetailsForm } from "@/components/property/property-details-form";
@@ -8,9 +9,16 @@ import {
   type StaffMember,
 } from "@/components/property/staff-manager";
 import { DangerZone } from "@/components/property/danger-zone";
+import { TemplateManager } from "@/components/housekeeping/template-manager";
 import { getCurrentMembership, listPropertyMembers } from "@/lib/auth/rbac";
 import { appRoleFromMetadata, listPendingInvitations } from "@/lib/auth/clerk-org";
 import { can } from "@/lib/auth/roles";
+import { db } from "@/lib/db";
+import {
+  checklistTemplateItems,
+  checklistTemplates,
+  roomTypes,
+} from "@/lib/db/schema";
 
 export const metadata = { title: "Settings" };
 
@@ -27,6 +35,7 @@ export default async function SettingsPage() {
   const canManageStaff = can(role, "staff:manage");
   const canEditProperty = can(role, "property:update");
   const canDeleteProperty = can(role, "property:delete");
+  const canManageChecklists = can(role, "checklist:manage");
 
   const rawMembers = await listPropertyMembers(property.id);
   const members: StaffMember[] = rawMembers.map((m) => ({
@@ -52,6 +61,32 @@ export default async function SettingsPage() {
     }
   }
 
+  // Fetch checklist templates and room types if allowed to manage checklists
+  const [templates, propertyRoomTypes] = canManageChecklists
+    ? await Promise.all([
+        db
+          .select({
+            id: checklistTemplates.id,
+            name: checklistTemplates.name,
+            defaultForRoomTypeId: checklistTemplates.defaultForRoomTypeId,
+            defaultForRoomTypeName: roomTypes.name,
+            itemCount: sql<number>`coalesce(count(distinct ${checklistTemplateItems.id}), 0)`,
+          })
+          .from(checklistTemplates)
+          .leftJoin(roomTypes, eq(checklistTemplates.defaultForRoomTypeId, roomTypes.id))
+          .leftJoin(
+            checklistTemplateItems,
+            eq(checklistTemplateItems.templateId, checklistTemplates.id)
+          )
+          .where(eq(checklistTemplates.propertyId, property.id))
+          .groupBy(checklistTemplates.id, roomTypes.name),
+        db
+          .select({ id: roomTypes.id, name: roomTypes.name })
+          .from(roomTypes)
+          .where(eq(roomTypes.propertyId, property.id)),
+      ])
+    : [[], []];
+
   return (
     <>
       <PageHeader title="Settings" description={property.name} />
@@ -67,6 +102,16 @@ export default async function SettingsPage() {
             }}
           />
         </section>
+
+        {canManageChecklists ? (
+          <section>
+            <TemplateManager
+              canManage={canManageChecklists}
+              templates={templates}
+              roomTypes={propertyRoomTypes}
+            />
+          </section>
+        ) : null}
 
         {canManageStaff ? (
           <section>
