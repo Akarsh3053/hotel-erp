@@ -58,5 +58,5 @@ export const ROLE_LABELS: Record<Role, string> = {
   owner: "Owner",
   manager: "Manager",
   receptionist: "Receptionist",
-  cleaner: "Cleaner",
+  cleaner: "Housekeeper",
 };

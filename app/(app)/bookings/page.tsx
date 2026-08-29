@@ -104,6 +104,7 @@ export default async function BookingsPage() {
       status: rooms.status,
       roomTypeName: roomTypes.name,
       displayPrice: roomTypes.displayPrice,
+      pricingType: roomTypes.pricingType,
     })
     .from(rooms)
     .innerJoin(roomTypes, eq(rooms.roomTypeId, roomTypes.id))
@@ -117,6 +118,7 @@ export default async function BookingsPage() {
     status: r.status,
     roomTypeName: r.roomTypeName,
     displayPrice: r.displayPrice,
+    pricingType: r.pricingType as "fixed" | "flexi",
   }));
 
   return (

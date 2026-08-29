@@ -8,6 +8,9 @@ import {
   Building2,
   Sparkles,
   Loader2,
+  Clock,
+  Moon,
+  Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -91,9 +94,13 @@ export function CheckInFormDialog({
 
   // Stay state
   const [selectedRoomId, setSelectedRoomId] = useState<string>("");
+  const [bookingType, setBookingType] = useState<"hourly" | "nightly" | "dates">("nightly");
   const [durationNights, setDurationNights] = useState<number>(1);
+  const [durationHours, setDurationHours] = useState<number>(2);
   const [adultCount, setAdultCount] = useState<number>(1);
   const [childCount, setChildCount] = useState<number>(0);
+  const [selectedRoom, setSelectedRoom] = useState<AvailableRoom | null>(null);
+  const [totalPrice, setTotalPrice] = useState<string>("");
 
   // Dynamic guest forms state
   const [adults, setAdults] = useState<AdultFormState[]>([]);
@@ -110,11 +117,13 @@ export function CheckInFormDialog({
     if (reservation) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedRoomId(reservation.roomId);
+      setBookingType("nightly");
       setDurationNights(1);
       const resAdults = Math.max(1, reservation.adultCount ?? 1);
       const resChildren = reservation.childCount ?? 0;
       setAdultCount(resAdults);
       setChildCount(resChildren);
+      setTotalPrice("");
 
       const initialAdults: AdultFormState[] = Array.from(
         { length: resAdults },
@@ -143,16 +152,27 @@ export function CheckInFormDialog({
       setChildren(initialChildren);
     } else {
       let defaultRoomId = "";
+      let defaultRoom: AvailableRoom | null = null;
       // Avoid runtime crash if displayRooms isn't strictly defined yet
       if (rooms && rooms.length > 0) {
         const availableRooms = rooms.filter((r) => r.status === "available");
-        defaultRoomId = availableRooms.length > 0 ? availableRooms[0].id : rooms[0].id;
+        if (availableRooms.length > 0) {
+          defaultRoomId = availableRooms[0].id;
+          defaultRoom = availableRooms[0];
+        } else {
+          defaultRoomId = rooms[0].id;
+          defaultRoom = rooms[0];
+        }
       }
 
       setSelectedRoomId(defaultRoomId);
+      setSelectedRoom(defaultRoom);
+      setBookingType("nightly");
       setDurationNights(1);
+      setDurationHours(2);
       setAdultCount(1);
       setChildCount(0);
+      setTotalPrice("");
       setAdults([
         {
           name: "",
@@ -169,6 +189,14 @@ export function CheckInFormDialog({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, reservation?.id]);
+
+  // Update selected room when room selection changes
+  useEffect(() => {
+    if (selectedRoomId) {
+      const room = displayRooms.find((r) => r.id === selectedRoomId);
+      setSelectedRoom(room ?? null);
+    }
+  }, [selectedRoomId, displayRooms]);
 
   // Adjust adult forms when adult count changes
   function handleAdultCountChange(newCount: number | "") {
@@ -374,7 +402,9 @@ export function CheckInFormDialog({
       } else {
         result = await checkInWalkIn({
           roomId: selectedRoomId,
-          durationNights,
+          bookingType,
+          durationNights: bookingType === "hourly" ? durationHours : durationNights,
+          totalPrice: totalPrice ? Number(totalPrice) : undefined,
           adultCount,
           childCount,
           adults: uploadedAdults,
@@ -468,21 +498,91 @@ export function CheckInFormDialog({
 
                 {!isReservationCheckIn && (
                   <div className="space-y-1.5">
-                    <Label htmlFor="checkin-nights">Duration (Nights)</Label>
-                    <Input
-                      id="checkin-nights"
-                      type="number"
-                      min={1}
-                      max={60}
-                      value={durationNights || ""}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10);
-                        setDurationNights(isNaN(val) ? ("" as unknown as number) : val);
-                      }}
-                    />
+                    <Label htmlFor="checkin-type">Booking Type</Label>
+                    <div className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent p-1">
+                      <div className="flex w-full overflow-hidden rounded-sm">
+                        <button
+                          type="button"
+                          onClick={() => setBookingType("hourly")}
+                          className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-medium transition-all ${
+                            bookingType === "hourly"
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          <Clock className="size-3.5" />
+                          Hourly
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBookingType("nightly")}
+                          className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-medium transition-all ${
+                            bookingType === "nightly"
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          <Moon className="size-3.5" />
+                          Nightly
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setBookingType("dates")}
+                          className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-medium transition-all ${
+                            bookingType === "dates"
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          <Calendar className="size-3.5" />
+                          Dates
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
+
+              {!isReservationCheckIn && (
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="checkin-duration">
+                      {bookingType === "hourly" ? "Duration (Hours)" : "Duration (Nights)"}
+                    </Label>
+                    <Input
+                      id="checkin-duration"
+                      type="number"
+                      min={1}
+                      max={60}
+                      value={bookingType === "hourly" ? durationHours || "" : durationNights || ""}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        const cleanVal = isNaN(val) ? ("" as unknown as number) : val;
+                        if (bookingType === "hourly") {
+                          setDurationHours(cleanVal);
+                        } else {
+                          setDurationNights(cleanVal);
+                        }
+                      }}
+                      disabled={bookingType === "dates"}
+                    />
+                  </div>
+
+                  {selectedRoom?.pricingType === "flexi" && (
+                    <div className="space-y-1.5">
+                      <Label htmlFor="checkin-tariff">Custom Tariff (₹)</Label>
+                      <Input
+                        id="checkin-tariff"
+                        type="number"
+                        min={0}
+                        placeholder={selectedRoom.displayPrice ?? ""}
+                        value={totalPrice}
+                        onChange={(e) => setTotalPrice(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Guest Counts Switcher */}
               <div className="grid grid-cols-2 gap-3 pt-1">

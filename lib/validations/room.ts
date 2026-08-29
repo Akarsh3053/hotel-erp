@@ -46,9 +46,13 @@ const maxOccupancy = z.preprocess(
     .optional(),
 );
 
+export const PRICING_TYPES = ["fixed", "flexi"] as const;
+export type PricingType = (typeof PRICING_TYPES)[number];
+
 export const createRoomTypeSchema = z.object({
   name: roomTypeName,
   description: roomTypeDescription,
+  pricingType: z.enum(PRICING_TYPES).default("fixed"),
   displayPrice,
   maxOccupancy,
 });

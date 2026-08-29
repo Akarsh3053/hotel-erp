@@ -30,6 +30,8 @@ import {
 } from "@/lib/validations/booking";
 import { createReservation } from "@/app/(app)/bookings/actions";
 
+import { Clock, Moon, Calendar, Loader2 } from "lucide-react";
+
 export type AvailableRoom = {
   id: string;
   roomNumber: string;
@@ -37,6 +39,7 @@ export type AvailableRoom = {
   status: string;
   roomTypeName: string;
   displayPrice: string | null;
+  pricingType?: "fixed" | "flexi";
 };
 
 export function ReservationFormDialog({
@@ -61,19 +64,27 @@ export function ReservationFormDialog({
     handleSubmit,
     control,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(createReservationSchema),
     defaultValues: {
       roomId: displayRooms[0]?.id ?? "",
+      bookingType: "nightly" as "hourly" | "nightly" | "dates",
       scheduledCheckInAt: todayStr,
       durationNights: 1,
+      totalPrice: "" as unknown as number,
       adultCount: 1,
       childCount: 0,
       primaryGuestName: "",
       primaryGuestContact: "",
     },
   });
+
+  const selectedRoomId = watch("roomId");
+  const selectedRoom = displayRooms.find(r => r.id === selectedRoomId);
+  const bookingType = watch("bookingType");
 
   useEffect(() => {
     if (open) {
@@ -84,8 +95,10 @@ export function ReservationFormDialog({
       }
       reset({
         roomId: defaultRoomId,
+        bookingType: "nightly",
         scheduledCheckInAt: new Date().toISOString().split("T")[0]!,
         durationNights: 1,
+        totalPrice: "" as unknown as number,
         adultCount: 1,
         childCount: 0,
         primaryGuestName: "",
@@ -120,38 +133,84 @@ export function ReservationFormDialog({
           </DialogHeader>
 
           <div className="my-4 space-y-4">
-            {/* Room selection */}
-            <div className="space-y-2">
-              <Label htmlFor="res-room">Select Room</Label>
-              <Controller
-                name="roomId"
-                control={control}
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger id="res-room" className="w-full">
-                      <SelectValue placeholder="Choose a room" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {displayRooms.map((r) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          Room {r.roomNumber} ({r.roomTypeName})
-                          {r.status !== "available" ? ` · [${r.status}]` : ""}
-                          {r.displayPrice ? ` - $${r.displayPrice}/night` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.roomId ? (
-                <p className="text-sm text-destructive">
-                  {errors.roomId.message}
-                </p>
-              ) : null}
+            {/* Room selection & Booking Type */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="res-room">Select Room</Label>
+                <Controller
+                  name="roomId"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="res-room" className="w-full">
+                        <SelectValue placeholder="Choose a room" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {displayRooms.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            Room {r.roomNumber} ({r.roomTypeName})
+                            {r.status !== "available" ? ` · [${r.status}]` : ""}
+                            {r.displayPrice ? ` - ₹${r.displayPrice}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.roomId ? (
+                  <p className="text-sm text-destructive">
+                    {errors.roomId.message}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="res-type">Booking Type</Label>
+                <div className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent p-1">
+                  <div className="flex w-full overflow-hidden rounded-sm">
+                    <button
+                      type="button"
+                      onClick={() => setValue("bookingType", "hourly")}
+                      className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-medium transition-all ${
+                        bookingType === "hourly"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <Clock className="size-3.5" />
+                      Hourly
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setValue("bookingType", "nightly")}
+                      className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-medium transition-all ${
+                        bookingType === "nightly"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <Moon className="size-3.5" />
+                      Nightly
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setValue("bookingType", "dates")}
+                      className={`flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-medium transition-all ${
+                        bookingType === "dates"
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-muted"
+                      }`}
+                    >
+                      <Calendar className="size-3.5" />
+                      Dates
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Check-in date & duration */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Check-in date & duration & tariff */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="res-date">Check-in Date</Label>
                 <Input
@@ -169,14 +228,17 @@ export function ReservationFormDialog({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="res-nights">Nights</Label>
+                <Label htmlFor="res-nights">
+                  {bookingType === "hourly" ? "Duration (Hours)" : "Duration (Nights)"}
+                </Label>
                 <Input
                   id="res-nights"
                   type="number"
                   min="1"
-                  max="60"
+                  max="300"
                   aria-invalid={errors.durationNights ? true : undefined}
                   {...register("durationNights")}
+                  disabled={bookingType === "dates"}
                 />
                 {errors.durationNights ? (
                   <p className="text-sm text-destructive">
@@ -184,6 +246,25 @@ export function ReservationFormDialog({
                   </p>
                 ) : null}
               </div>
+
+              {selectedRoom?.pricingType === "flexi" && (
+                <div className="space-y-2">
+                  <Label htmlFor="res-tariff">Custom Tariff (₹)</Label>
+                  <Input
+                    id="res-tariff"
+                    type="number"
+                    min="0"
+                    placeholder={selectedRoom.displayPrice ?? ""}
+                    aria-invalid={errors.totalPrice ? true : undefined}
+                    {...register("totalPrice")}
+                  />
+                  {errors.totalPrice ? (
+                    <p className="text-sm text-destructive">
+                      {errors.totalPrice.message}
+                    </p>
+                  ) : null}
+                </div>
+              )}
             </div>
 
             {/* Guest Counts */}
@@ -270,7 +351,14 @@ export function ReservationFormDialog({
               </Button>
             </DialogClose>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating…" : "Save Reservation"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin" data-icon="inline-start" />
+                  Creating…
+                </>
+              ) : (
+                "Save Reservation"
+              )}
             </Button>
           </DialogFooter>
         </form>

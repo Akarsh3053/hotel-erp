@@ -30,6 +30,7 @@ export default async function RoomsPage() {
         id: roomTypes.id,
         name: roomTypes.name,
         description: roomTypes.description,
+        pricingType: roomTypes.pricingType,
         displayPrice: roomTypes.displayPrice,
         maxOccupancy: roomTypes.maxOccupancy,
       })

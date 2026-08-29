@@ -42,6 +42,8 @@ export const taskStatusEnum = pgEnum("task_status", [
 ]);
 export const guestTypeEnum = pgEnum("guest_type", ["adult", "child"]);
 export const genderEnum = pgEnum("gender", ["male", "female", "other"]);
+export const pricingTypeEnum = pgEnum("pricing_type", ["fixed", "flexi"]);
+export const bookingTypeEnum = pgEnum("booking_type", ["hourly", "nightly", "dates"]);
 
 /* Shared timestamp columns. */
 const timestamps = {
@@ -124,6 +126,7 @@ export const roomTypes = pgTable(
       .references(() => properties.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
+    pricingType: pricingTypeEnum("pricing_type").notNull().default("fixed"),
     displayPrice: numeric("display_price", { precision: 10, scale: 2 }),
     maxOccupancy: integer("max_occupancy"),
     ...timestamps,
@@ -206,6 +209,8 @@ export const bookings = pgTable(
       .notNull()
       .references(() => rooms.id, { onDelete: "restrict" }),
     status: bookingStatusEnum("status").notNull().default("reserved"),
+    bookingType: bookingTypeEnum("booking_type").notNull().default("nightly"),
+    totalPrice: numeric("total_price", { precision: 10, scale: 2 }),
     scheduledCheckInAt: timestamp("scheduled_check_in_at", {
       withTimezone: true,
     }),

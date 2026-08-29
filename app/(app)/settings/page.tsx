@@ -35,6 +35,7 @@ export default async function SettingsPage() {
 
   const { role, property, user } = membership;
   const canManageStaff = can(role, "staff:manage");
+  const isOwner = role === "owner";
   const canEditProperty = can(role, "property:update");
   const canDeleteProperty = can(role, "property:delete");
   const canManageChecklists = can(role, "checklist:manage");
@@ -131,6 +132,7 @@ export default async function SettingsPage() {
           <section>
             <StaffManager
               canManage={canManageStaff}
+              isOwner={isOwner}
               members={members}
               invitations={invitations}
             />

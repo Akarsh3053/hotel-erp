@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { eq } from "drizzle-orm";
+import { eq, and, gte } from "drizzle-orm";
 import {
   BedDouble,
   Building2,
@@ -8,6 +8,8 @@ import {
   Plus,
   Settings,
   Sparkles,
+  DollarSign,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 
@@ -16,7 +18,7 @@ import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { db } from "@/lib/db";
-import { rooms } from "@/lib/db/schema";
+import { rooms, bookings } from "@/lib/db/schema";
 import { getCurrentMembership } from "@/lib/auth/rbac";
 import { can, ROLE_LABELS, type PermissionAction } from "@/lib/auth/roles";
 import type { RoomStatus } from "@/lib/validations/room";
@@ -105,6 +107,32 @@ export default async function HomePage() {
     }
   }
 
+  // Dashboard Stats for Owner
+  let currentMonthBookingsCount = 0;
+  let currentMonthRevenue = 0;
+  if (role === "owner") {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const monthlyBookings = await db
+      .select({
+        totalPrice: bookings.totalPrice,
+      })
+      .from(bookings)
+      .where(
+        and(
+          eq(bookings.propertyId, property.id),
+          gte(bookings.createdAt, startOfMonth)
+        )
+      );
+
+    currentMonthBookingsCount = monthlyBookings.length;
+    currentMonthRevenue = monthlyBookings.reduce(
+      (acc, b) => acc + (b.totalPrice ? Number(b.totalPrice) : 0),
+      0
+    );
+  }
+
   return (
     <>
       <PageHeader
@@ -113,6 +141,38 @@ export default async function HomePage() {
       />
 
       <div className="space-y-5">
+        {/* Revenue & Booking Dashboard (owner only) */}
+        {role === "owner" && (
+          <section className="space-y-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Overall Performance (This Month)
+            </h2>
+            <div className="grid grid-cols-2 gap-3">
+              <Card className="flex flex-col p-4 shadow-sm border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/10 transition-colors">
+                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+                  <DollarSign className="size-4" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">Revenue</span>
+                </div>
+                <div className="mt-2 text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+                  ₹{currentMonthRevenue.toLocaleString("en-IN", {
+                    maximumFractionDigits: 0,
+                  })}
+                </div>
+              </Card>
+
+              <Card className="flex flex-col p-4 shadow-sm border-blue-500/20 bg-blue-500/5 dark:bg-blue-500/10 transition-colors">
+                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
+                  <TrendingUp className="size-4" />
+                  <span className="text-xs font-semibold uppercase tracking-wider">Bookings</span>
+                </div>
+                <div className="mt-2 text-2xl font-bold text-blue-700 dark:text-blue-300">
+                  {currentMonthBookingsCount}
+                </div>
+              </Card>
+            </div>
+          </section>
+        )}
+
         {/* Live inventory status summary (receptionist, manager, owner) */}
         {canViewRooms && (
           <section className="space-y-2">

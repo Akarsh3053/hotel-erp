@@ -46,7 +46,9 @@ export default async function AppLayout({
       <div className="flex min-h-dvh flex-col">
         <AppHeader />
         <main className="mx-auto w-full max-w-screen-sm flex-1 px-4 pb-12 pt-4">
-          {children}
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards">
+            {children}
+          </div>
         </main>
       </div>
     );
@@ -81,7 +83,7 @@ export default async function AppLayout({
 
         {/* Main Content Area */}
         <main className="w-full flex-1 px-4 py-4 pb-24 lg:px-8 lg:pb-8">
-          <div className="mx-auto w-full max-w-6xl">
+          <div className="mx-auto w-full max-w-6xl animate-in fade-in slide-in-from-bottom-2 duration-500 fill-mode-backwards">
             {children}
           </div>
         </main>

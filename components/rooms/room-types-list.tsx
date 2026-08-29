@@ -115,8 +115,8 @@ export function RoomTypesList({
 
                 {rt.displayPrice ? (
                   <span className="font-semibold text-foreground">
-                    ${rt.displayPrice}
-                    <span className="font-normal text-muted-foreground">/night</span>
+                    ₹{rt.displayPrice}
+                    {/* The /night part can be optionally customized later if needed */}
                   </span>
                 ) : (
                   <span>No price set</span>

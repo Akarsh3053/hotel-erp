@@ -168,8 +168,8 @@ export function RoomCard({
 
           {roomType?.displayPrice ? (
             <span className="font-semibold text-foreground">
-              ${roomType.displayPrice}
-              <span className="font-normal text-muted-foreground">/night</span>
+              ₹{roomType.displayPrice}
+              {roomType.pricingType === "flexi" ? " " : <span className="font-normal text-muted-foreground">/night</span>}
             </span>
           ) : (
             <span>—</span>

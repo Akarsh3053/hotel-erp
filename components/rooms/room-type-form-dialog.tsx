@@ -2,9 +2,17 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +36,7 @@ export type RoomTypeData = {
   id: string;
   name: string;
   description: string | null;
+  pricingType: "fixed" | "flexi";
   displayPrice: string | null;
   maxOccupancy: number | null;
 };
@@ -47,6 +56,7 @@ export function RoomTypeFormDialog({
   const {
     register,
     handleSubmit,
+    control,
     reset,
     formState: { errors, isSubmitting },
   } = useForm({
@@ -54,6 +64,7 @@ export function RoomTypeFormDialog({
     defaultValues: {
       name: "",
       description: "",
+      pricingType: "fixed" as "fixed" | "flexi",
       displayPrice: "" as unknown as number | undefined,
       maxOccupancy: 2 as unknown as number | undefined,
     },
@@ -64,6 +75,7 @@ export function RoomTypeFormDialog({
       reset({
         name: editingRoomType.name,
         description: editingRoomType.description ?? "",
+        pricingType: editingRoomType.pricingType,
         displayPrice: editingRoomType.displayPrice ? Number(editingRoomType.displayPrice) : undefined,
         maxOccupancy: editingRoomType.maxOccupancy ?? 2,
       });
@@ -71,6 +83,7 @@ export function RoomTypeFormDialog({
       reset({
         name: "",
         description: "",
+        pricingType: "fixed",
         displayPrice: undefined,
         maxOccupancy: 2,
       });
@@ -124,8 +137,32 @@ export function RoomTypeFormDialog({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
+                <Label htmlFor="rt-pricing">Pricing Type</Label>
+                <Controller
+                  name="pricingType"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="rt-pricing">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fixed">Fixed</SelectItem>
+                        <SelectItem value="flexi">Flexible (Negotiable)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.pricingType ? (
+                  <p className="text-sm text-destructive">
+                    {errors.pricingType.message}
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="rt-price">
-                  Base price <span className="font-normal text-muted-foreground">(per night)</span>
+                  Base price <span className="font-normal text-muted-foreground">({errors.pricingType?.message ? "" : "₹/night"})</span>
                 </Label>
                 <Input
                   id="rt-price"
@@ -188,11 +225,16 @@ export function RoomTypeFormDialog({
               </Button>
             </DialogClose>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? "Saving…"
-                : isEditing
-                ? "Save changes"
-                : "Create room type"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin" data-icon="inline-start" />
+                  Saving…
+                </>
+              ) : isEditing ? (
+                "Save changes"
+              ) : (
+                "Create room type"
+              )}
             </Button>
           </DialogFooter>
         </form>

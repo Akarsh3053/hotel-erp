@@ -27,6 +27,12 @@ export const BOOKING_STATUS_LABELS: Record<BookingStatus, string> = {
   cancelled: "Cancelled",
 };
 
+export const BOOKING_TYPES = ["hourly", "nightly", "dates"] as const;
+export type BookingType = (typeof BOOKING_TYPES)[number];
+
+export const PRICING_TYPES = ["fixed", "flexi"] as const;
+export type PricingType = (typeof PRICING_TYPES)[number];
+
 export const adultGuestSchema = z.object({
   name: z
     .string()
@@ -74,12 +80,16 @@ export type ChildGuestInput = z.infer<typeof childGuestSchema>;
  */
 export const createReservationSchema = z.object({
   roomId: z.string().uuid("Select a room"),
+  bookingType: z.enum(BOOKING_TYPES).default("nightly"),
   scheduledCheckInAt: z.string().min(1, "Select a check-in date"),
+  scheduledCheckOutAt: z.string().optional().nullable(),
   durationNights: z.coerce
-    .number({ error: "Enter number of nights" })
+    .number({ error: "Enter duration" })
     .int()
-    .min(1, "Minimum 1 night")
-    .max(60, "Maximum 60 nights"),
+    .min(1, "Minimum 1")
+    .max(300, "Duration is too long")
+    .optional(),
+  totalPrice: z.coerce.number().optional().nullable(),
   adultCount: z.coerce
     .number()
     .int()
@@ -110,11 +120,15 @@ export type CreateReservationInput = z.infer<typeof createReservationSchema>;
 export const checkInWalkInSchema = z
   .object({
     roomId: z.string().uuid("Select a room"),
+    bookingType: z.enum(BOOKING_TYPES).default("nightly"),
+    scheduledCheckOutAt: z.string().optional().nullable(),
     durationNights: z.coerce
-      .number({ error: "Enter number of nights" })
+      .number({ error: "Enter duration" })
       .int()
-      .min(1, "Minimum 1 night")
-      .max(60, "Maximum 60 nights"),
+      .min(1, "Minimum 1")
+      .max(300, "Maximum limit reached")
+      .optional(),
+    totalPrice: z.coerce.number().optional().nullable(),
     adultCount: z.coerce
       .number()
       .int()

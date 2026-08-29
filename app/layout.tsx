@@ -52,7 +52,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <ClerkProvider>
+    //@ts-ignore
+    <ClerkProvider layout={{ unsafe_disableDevelopmentModeWarnings: true }}>
       <html
         lang="en"
         suppressHydrationWarning

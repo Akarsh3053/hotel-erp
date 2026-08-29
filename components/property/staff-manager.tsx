@@ -71,10 +71,12 @@ function roleLabel(role: string): string {
 
 export function StaffManager({
   canManage,
+  isOwner = false,
   members,
   invitations,
 }: {
   canManage: boolean;
+  isOwner?: boolean;
   members: StaffMember[];
   invitations: PendingInvitation[];
 }) {
@@ -136,7 +138,7 @@ export function StaffManager({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-semibold">Team</h2>
-        {canManage ? (
+        {isOwner ? (
           <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
             <DialogTrigger asChild>
               <Button size="sm">
@@ -197,7 +199,14 @@ export function StaffManager({
                     </Button>
                   </DialogClose>
                   <Button type="submit" disabled={inviting}>
-                    {inviting ? "Sending…" : "Send invite"}
+                    {inviting ? (
+                      <>
+                        <Loader2 className="animate-spin" data-icon="inline-start" />
+                        Sending…
+                      </>
+                    ) : (
+                      "Send invite"
+                    )}
                   </Button>
                 </DialogFooter>
               </form>

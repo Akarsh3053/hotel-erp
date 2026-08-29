@@ -16,17 +16,17 @@ import type { ActionResult } from "@/lib/action-result";
 import { inviteStaffSchema } from "@/lib/validations/property";
 
 /**
- * Invite a staff member to the active property by email + app role. Owner or
- * manager only (spec §3). The Clerk invitation carries the app role in
- * publicMetadata; the `organizationMembership.created` webhook writes the
+ * Invite a staff member to the active property by email + app role. Owner only
+ * (spec §3 - wait, updated to owner only per request). The Clerk invitation carries
+ * the app role in publicMetadata; the `organizationMembership.created` webhook writes the
  * authoritative `property_members` row once the invitee accepts.
  */
 export async function inviteStaff(input: unknown): Promise<ActionResult> {
   let membership;
   try {
-    membership = await requireMembership(["owner", "manager"]);
+    membership = await requireMembership(["owner"]);
   } catch {
-    return { ok: false, error: "You don't have permission to invite staff." };
+    return { ok: false, error: "You don't have permission to invite staff (owner only)." };
   }
 
   const parsed = inviteStaffSchema.safeParse(input);

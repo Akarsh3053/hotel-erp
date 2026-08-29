@@ -5,6 +5,7 @@ import { useClerk } from "@clerk/nextjs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -96,7 +97,14 @@ export function CreatePropertyForm() {
       </div>
 
       <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Creating…" : "Create property"}
+        {isSubmitting ? (
+          <>
+            <Loader2 className="animate-spin" data-icon="inline-start" />
+            Creating…
+          </>
+        ) : (
+          "Create property"
+        )}
       </Button>
     </form>
   );

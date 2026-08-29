@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,7 +123,14 @@ export function PropertyDetailsForm({
       </div>
 
       <Button type="submit" disabled={isSubmitting || !isDirty}>
-        {isSubmitting ? "Saving…" : "Save changes"}
+        {isSubmitting ? (
+          <>
+            <Loader2 className="animate-spin" data-icon="inline-start" />
+            Saving…
+          </>
+        ) : (
+          "Save changes"
+        )}
       </Button>
     </form>
   );

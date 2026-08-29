@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -169,7 +170,7 @@ export function RoomFormDialog({
                       {roomTypes.map((rt) => (
                         <SelectItem key={rt.id} value={rt.id}>
                           {rt.name}{" "}
-                          {rt.displayPrice ? `($${rt.displayPrice}/night)` : ""}
+                          {rt.displayPrice ? `(₹${rt.displayPrice})` : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -219,11 +220,16 @@ export function RoomFormDialog({
               </Button>
             </DialogClose>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting
-                ? "Saving…"
-                : isEditing
-                ? "Save changes"
-                : "Create room"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin" data-icon="inline-start" />
+                  Saving…
+                </>
+              ) : isEditing ? (
+                "Save changes"
+              ) : (
+                "Create room"
+              )}
             </Button>
           </DialogFooter>
         </form>
