@@ -74,13 +74,15 @@ export async function uploadImage(
 ): Promise<UploadedImage> {
   ensureConfigured();
   const access = opts.access ?? "authenticated";
+  // Cloudinary "type" param: "authenticated" for private assets, "upload" for public
+  const type = access === "public" ? "upload" : "authenticated";
 
   const result = await new Promise<UploadApiResponse>((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       {
         folder: opts.folder,
         ...(opts.publicId ? { public_id: opts.publicId } : {}),
-        type: access, // "authenticated" = not publicly reachable
+        type, // "authenticated" = not publicly reachable, "upload" = public
         resource_type: "image",
         overwrite: false,
         unique_filename: true,
@@ -115,8 +117,10 @@ export function getSignedImageUrl(
   opts: { access?: ImageAccess; version?: number } = {},
 ): string {
   ensureConfigured();
+  const access = opts.access ?? "authenticated";
+  const type = access === "public" ? "upload" : "authenticated";
   return cloudinary.url(publicId, {
-    type: opts.access ?? "authenticated",
+    type,
     resource_type: "image",
     secure: true,
     sign_url: true,
@@ -130,8 +134,10 @@ export async function deleteImage(
   opts: { access?: ImageAccess } = {},
 ): Promise<void> {
   ensureConfigured();
+  const access = opts.access ?? "authenticated";
+  const type = access === "public" ? "upload" : "authenticated";
   await cloudinary.uploader.destroy(publicId, {
-    type: opts.access ?? "authenticated",
+    type,
     resource_type: "image",
     invalidate: true,
   });
