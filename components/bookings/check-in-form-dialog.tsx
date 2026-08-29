@@ -142,7 +142,14 @@ export function CheckInFormDialog({
       setAdults(initialAdults);
       setChildren(initialChildren);
     } else {
-      setSelectedRoomId(displayRooms[0]?.id ?? "");
+      let defaultRoomId = "";
+      // Avoid runtime crash if displayRooms isn't strictly defined yet
+      if (rooms && rooms.length > 0) {
+        const availableRooms = rooms.filter((r) => r.status === "available");
+        defaultRoomId = availableRooms.length > 0 ? availableRooms[0].id : rooms[0].id;
+      }
+
+      setSelectedRoomId(defaultRoomId);
       setDurationNights(1);
       setAdultCount(1);
       setChildCount(0);
@@ -160,10 +167,15 @@ export function CheckInFormDialog({
       ]);
       setChildren([]);
     }
-  }, [open, reservation, displayRooms]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, reservation?.id]);
 
   // Adjust adult forms when adult count changes
-  function handleAdultCountChange(newCount: number) {
+  function handleAdultCountChange(newCount: number | "") {
+    if (newCount === "") {
+      setAdultCount("" as unknown as number);
+      return;
+    }
     const clamped = Math.max(1, Math.min(10, newCount));
     setAdultCount(clamped);
 
@@ -195,7 +207,11 @@ export function CheckInFormDialog({
   }
 
   // Adjust child forms when child count changes
-  function handleChildCountChange(newCount: number) {
+  function handleChildCountChange(newCount: number | "") {
+    if (newCount === "") {
+      setChildCount("" as unknown as number);
+      return;
+    }
     const clamped = Math.max(0, Math.min(10, newCount));
     setChildCount(clamped);
 
@@ -458,10 +474,11 @@ export function CheckInFormDialog({
                       type="number"
                       min={1}
                       max={60}
-                      value={durationNights}
-                      onChange={(e) =>
-                        setDurationNights(parseInt(e.target.value, 10) || 1)
-                      }
+                      value={durationNights || ""}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        setDurationNights(isNaN(val) ? ("" as unknown as number) : val);
+                      }}
                     />
                   </div>
                 )}
@@ -476,10 +493,11 @@ export function CheckInFormDialog({
                     type="number"
                     min={1}
                     max={10}
-                    value={adultCount}
-                    onChange={(e) =>
-                      handleAdultCountChange(parseInt(e.target.value, 10) || 1)
-                    }
+                    value={adultCount || ""}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      handleAdultCountChange(isNaN(val) ? ("" as unknown as number) : val);
+                    }}
                   />
                 </div>
 
@@ -490,10 +508,11 @@ export function CheckInFormDialog({
                     type="number"
                     min={0}
                     max={10}
-                    value={childCount}
-                    onChange={(e) =>
-                      handleChildCountChange(parseInt(e.target.value, 10) || 0)
-                    }
+                    value={childCount !== undefined && childCount !== null ? childCount : ""}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      handleChildCountChange(isNaN(val) ? ("" as unknown as number) : val);
+                    }}
                   />
                 </div>
               </div>

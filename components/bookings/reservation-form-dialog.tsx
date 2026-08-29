@@ -77,9 +77,14 @@ export function ReservationFormDialog({
 
   useEffect(() => {
     if (open) {
+      let defaultRoomId = "";
+      if (rooms && rooms.length > 0) {
+        const available = rooms.filter((r) => r.status === "available");
+        defaultRoomId = available.length > 0 ? available[0].id : rooms[0].id;
+      }
       reset({
-        roomId: displayRooms[0]?.id ?? "",
-        scheduledCheckInAt: todayStr,
+        roomId: defaultRoomId,
+        scheduledCheckInAt: new Date().toISOString().split("T")[0]!,
         durationNights: 1,
         adultCount: 1,
         childCount: 0,
@@ -87,7 +92,8 @@ export function ReservationFormDialog({
         primaryGuestContact: "",
       });
     }
-  }, [open, displayRooms, todayStr, reset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, reset]);
 
   const onSubmit = handleSubmit(async (values) => {
     const result = await createReservation(values);
