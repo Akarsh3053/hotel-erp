@@ -392,7 +392,17 @@ export function CheckInFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] max-w-xl overflow-y-auto p-4 sm:p-6">
+      <DialogContent
+        className="max-h-[92vh] max-w-xl overflow-y-auto p-4 sm:p-6"
+        onInteractOutside={(e) => {
+          // Allow closing when clicking the overlay, but prevent closing when
+          // clicking Select dropdowns or other portaled UI elements
+          const target = e.target as HTMLElement;
+          if (target.closest('[data-radix-popper-content-wrapper]')) {
+            e.preventDefault();
+          }
+        }}
+      >
         <form onSubmit={handleSubmit} noValidate>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-lg">
