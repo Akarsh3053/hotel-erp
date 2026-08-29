@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
 import { Loader2 } from "lucide-react";
@@ -26,6 +26,21 @@ export function ActivatePropertyGate({
   const { setActive } = useClerk();
   const valid = properties.filter((p): p is ValidCandidate => Boolean(p.orgId));
   const [busy, setBusy] = useState(false);
+  const attemptedRef = useRef(false);
+
+  const only = valid.length === 1 ? valid[0].orgId : null;
+
+  useEffect(() => {
+    if (!only || attemptedRef.current) return;
+    attemptedRef.current = true;
+    setActive({ organization: only })
+      .then(() => {
+        router.refresh();
+      })
+      .catch(() => {
+        toast.error("Couldn't open that property. Try again.");
+      });
+  }, [only, setActive, router]);
 
   async function activate(orgId: string) {
     setBusy(true);
@@ -37,13 +52,6 @@ export function ActivatePropertyGate({
       toast.error("Couldn't open that property. Try again.");
     }
   }
-
-  const only = valid.length === 1 ? valid[0].orgId : null;
-  useEffect(() => {
-    if (only) void activate(only);
-    // Runs once for the single-property case; activate is stable enough here.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [only]);
 
   if (valid.length <= 1) {
     return (
