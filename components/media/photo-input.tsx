@@ -17,17 +17,21 @@ type PhotoInputProps = {
   label?: string;
   hint?: string;
   disabled?: boolean;
-  /** "environment" = rear camera (default), "user" = selfie camera. */
+  /**
+   * Forces the native camera on mobile when set. Omit to show the standard
+   * file picker (camera + gallery). "environment" = rear camera, "user" = selfie.
+   */
   capture?: "user" | "environment";
   onChange?: (file: File | null) => void;
   className?: string;
 };
 
 /**
- * Mobile-first photo capture. Opens the native camera on phones via
- * `capture`, previews the chosen image, and rejects oversized/wrong-type
- * files client-side (spec §8). Server-side re-validation still applies on
- * upload — this is UX, not a security boundary.
+ * Mobile-first photo capture. Shows the system file picker (camera + gallery)
+ * by default, or locks to a specific camera when `capture` is supplied.
+ * Previews the chosen image and rejects oversized/wrong-type files client-side
+ * (spec §8). Server-side re-validation still applies on upload — this is UX,
+ * not a security boundary.
  */
 export function PhotoInput({
   id,
@@ -35,7 +39,7 @@ export function PhotoInput({
   label = "Add photo",
   hint,
   disabled,
-  capture = "environment",
+  capture,
   onChange,
   className,
 }: PhotoInputProps) {
@@ -90,7 +94,7 @@ export function PhotoInput({
         name={name}
         type="file"
         accept={ACCEPTED_IMAGE_TYPES.join(",")}
-        capture={capture}
+        {...(capture ? { capture } : {})}
         className="sr-only"
         disabled={disabled}
         onChange={handleSelect}

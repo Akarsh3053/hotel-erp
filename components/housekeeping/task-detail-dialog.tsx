@@ -28,6 +28,7 @@ import {
   toggleTaskItem,
   submitTask,
   reviewTask,
+  forceRoomAvailable,
 } from "@/app/(app)/housekeeping/actions";
 
 export type TaskItemDetail = {
@@ -156,7 +157,6 @@ function PhotoUploadSection({
             ref={fileRef}
             type="file"
             accept="image/*"
-            capture="environment"
             className="hidden"
             onChange={handleFileChange}
           />
@@ -272,6 +272,7 @@ export function TaskDetailDialog({
     (task.status === "assigned" ||
       task.status === "rejected" ||
       task.status === "in_progress");
+  const canForceAvailable = isManager && task.status !== "approved";
 
   function handleSubmit() {
     startSubmitTransition(async () => {
@@ -281,6 +282,20 @@ export function TaskDetailDialog({
         return;
       }
       toast.success("Task submitted for review.");
+    });
+  }
+
+  const [forcePending, startForceTransition] = useTransition();
+
+  function handleForceAvailable() {
+    startForceTransition(async () => {
+      const result = await forceRoomAvailable(task!.id);
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success("Room marked as available");
+      onOpenChange(false);
     });
   }
 
@@ -349,6 +364,25 @@ export function TaskDetailDialog({
               >
                 <UserCheck data-icon="inline-start" />
                 {task.status === "rejected" ? "Reassign Cleaner" : "Assign Cleaner"}
+              </Button>
+            )}
+
+            {/* Manager force override */}
+            {canForceAvailable && !canReview && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                disabled={forcePending}
+                onClick={handleForceAvailable}
+              >
+                {forcePending ? (
+                  <Loader2 className="animate-spin" data-icon="inline-start" />
+                ) : (
+                  <ThumbsUp data-icon="inline-start" />
+                )}
+                Mark Room Available (Override)
               </Button>
             )}
 

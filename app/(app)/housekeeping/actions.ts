@@ -248,6 +248,60 @@ export async function reviewTask(input: unknown): Promise<ActionResult> {
 }
 
 /* ---------------------------------------------------------------------------
+ * Manager override: Force a room out of housekeeping status back to available.
+ * Bypasses the cleaner workflow entirely.
+ * ------------------------------------------------------------------------- */
+export async function forceRoomAvailable(taskId: string): Promise<ActionResult> {
+  let membership;
+  try {
+    membership = await requireMembership(["owner", "manager"]);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Not authorized" };
+  }
+
+  const { property, user } = membership;
+
+  const [task] = await db
+    .select({
+      id: housekeepingTasks.id,
+      roomId: housekeepingTasks.roomId,
+      propertyId: housekeepingTasks.propertyId,
+    })
+    .from(housekeepingTasks)
+    .where(eq(housekeepingTasks.id, taskId))
+    .limit(1);
+
+  if (!task || task.propertyId !== property.id) {
+    return { ok: false, error: "Task not found in this property" };
+  }
+
+  const now = new Date();
+
+  // Mark task as approved (bypassing normal flow)
+  await db
+    .update(housekeepingTasks)
+    .set({
+      status: "approved",
+      reviewedAt: now,
+      reviewedBy: user.id,
+      reviewNotes: "Room forced to available by manager",
+      updatedAt: now,
+    })
+    .where(eq(housekeepingTasks.id, task.id));
+
+  // Update room to available
+  await db
+    .update(rooms)
+    .set({ status: "available", updatedAt: now })
+    .where(eq(rooms.id, task.roomId));
+
+  revalidatePath("/housekeeping");
+  revalidatePath("/rooms");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+/* ---------------------------------------------------------------------------
  * Checklist Template CRUD (owner/manager only)
  * ------------------------------------------------------------------------- */
 export async function createTemplate(input: unknown): Promise<ActionResult<{ templateId: string }>> {
